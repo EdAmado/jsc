@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSC</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow-x: hidden;
+    }
+
+    .grid-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #959595;
+      border: 1px solid #383838;
+      font-size: 2rem;
+      height: 100vh;
+    }
+
+    .cell-content {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    .numbers-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin: 10px 0;
+    }
+
+    .circle {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      border: 1px solid #000;
+      color: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+
+    .star-wrapper {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .star {
+      position: absolute;
+    }
+
+    .star-text {
+      font-weight: bold;
+      font-size: 1.2rem;
+      color: black;
+      z-index: 1;
+    }
+
+    .back-img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background-size: contain;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .reset-numbers {
+      width: 100%;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div class="container-fluid p-0">
+    <div id="data-grid" class="row g-0"></div>
+  </div>
+</body>
+
+<script type="module">
+  import { animate } from 'https://cdn.jsdelivr.net/npm/motion@12.23.12/+esm';
+
+  function getKeyStructure(game) {
+    switch (true) {
+      case game.includes("euromilhoes"): return [5, 2];
+      case game.includes("totoloto"): return [5, 1];
+      case game.includes("EuroDreams"): return [6, 1];
+    }
+  }
+
+  function getRandomNumbers(file, arrn, arrs) {
+    const [numn, nums] = getKeyStructure(file);
+    const ranN = arrn.sort(() => Math.random() - 0.5).slice(0, numn);
+    const ranS = arrs.sort(() => Math.random() - 0.5).slice(0, nums);
+    return { ranN, ranS };
+  }
+
+  function loadAnim() {
+    const row = document.querySelector('.row');
+    const cells = Array.from(row.children);
+
+    if (cells.length % 2 !== 0) {
+      cells[cells.length - 1].classList.remove('col-md-6');
+      cells[cells.length - 1].classList.add('col-12');
+    }
+
+    cells.forEach((cell) => {
+      const content = cell.querySelector('.cell-content');
+      animate(content, { opacity: [0, 1], translateY: [20, -50] }, { duration: 1.5, easing: "ease-in-out" });
+    });
+  }
+
+  async function loadData() {
+    const grid = document.getElementById("data-grid");
+    const res = await fetch("/data/");
+    const html = await res.text();
+    const files = [...html.matchAll(/href="([^"]+\.json)"/g)].map(m => m[1]);
+
+    function updateCellNumbers(cell, numbers, stars) {
+      const rows = cell.querySelectorAll(".numbers-row");
+      rows[0].innerHTML = generateNumbersHTML(numbers);
+      rows[1].innerHTML = generateStarsHTML(stars);
+    }
+
+    function generateNumbersHTML(numbers) {
+      return numbers
+        .sort((a, b) => a - b)
+        .map(num => `<div class="circle">${num}</div>`)
+        .join("");
+    }
+
+    function generateStarsHTML(stars) {
+      return stars
+        .sort((a, b) => a - b)
+        .map(num => `
+          <div class="star-wrapper">
+            <svg class="star" viewBox="0 0 24 24">
+              <polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9"
+                fill="none" stroke="black" stroke-width="0.5"/>
+            </svg>
+            <span class="star-text">${num}</span>
+          </div>
+        `).join("");
+    }
+
+    for (const file of files) {
+      const json = await fetch("/data/" + file).then(r => r.json());
+      const arrn = json[0]['n'];
+      const arrs = json[0]['s'];
+      const fileName = file.replace('.json', '');
+      const key = getRandomNumbers(fileName, arrn, arrs);
+
+      const cell = document.createElement("div");
+      cell.className = "col-12 col-md-6 grid-cell";
+
+      cell.innerHTML = `
+        <div class="cell-content">
+          <div class="back-img" style="background-image: url('${fileName}.png')"></div>
+          <div class="numbers-row"></div>
+          <div class="numbers-row"></div>
+          <a class="btn btn-primary mt-2 reset-numbers" disabled>Reset</a>
+        </div>
+      `;
+
+      updateCellNumbers(cell, key.ranN, key.ranS)
+
+      grid.appendChild(cell);
+
+      cell.querySelector(".reset-numbers").addEventListener("click", () => {
+        const newKey = getRandomNumbers(file, arrn, arrs);
+        updateCellNumbers(cell, newKey.ranN, newKey.ranS);
+      });
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    await loadData();
+    loadAnim();
+  });
+</script>
+
+</html>

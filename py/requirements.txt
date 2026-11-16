@@ -1,0 +1,4 @@
+scrapy
+apscheduler
+playwright
+playwright-stealth
