@@ -14,7 +14,7 @@ Supported games:
 
 - **`py/py.py`** – APScheduler entrypoint; runs `j.py` for each game on its schedule.
 - **`py/j.py`** – Scrapy spider that reads the game's statistics page, picks numbers based on absences and frequency across number ranges, and writes the result to `/data/<game>.json`. It then calls `auto.py` once per configured account.
-- **`py/auto.py`** – Playwright (Firefox + stealth) script that logs in and places the bet.
+- **`py/auto.py`** – Playwright script that logs in and places the bet.
 - **`ui/`** – Static page served by nginx that displays the picks from `ui/data/`.
 
 ## Running
